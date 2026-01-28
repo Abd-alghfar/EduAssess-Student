@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:abdotest/features/auth/domain/entities/app_user.dart';
-import 'package:abdotest/features/auth/domain/repositories/auth_repository.dart';
+import 'package:CodeKey/features/auth/domain/entities/app_user.dart';
+import 'package:CodeKey/features/auth/domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final SupabaseClient _client;

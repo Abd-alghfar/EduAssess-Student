@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:abdotest/features/lessons/presentation/providers/lessons_notifier.dart';
-import 'package:abdotest/features/quiz/presentation/screens/quiz_screen.dart';
-import 'package:abdotest/features/auth/presentation/providers/auth_notifier.dart';
-import 'package:abdotest/features/auth/presentation/providers/profile_provider.dart';
-import 'package:abdotest/features/lessons/presentation/providers/completed_lessons_provider.dart';
-import 'package:abdotest/features/chat/presentation/screens/chat_screen.dart';
+import 'package:CodeKey/features/lessons/presentation/providers/lessons_notifier.dart';
+import 'package:CodeKey/features/quiz/presentation/screens/quiz_screen.dart';
+import 'package:CodeKey/features/auth/presentation/providers/auth_notifier.dart';
+import 'package:CodeKey/features/auth/presentation/providers/profile_provider.dart';
+import 'package:CodeKey/features/lessons/presentation/providers/completed_lessons_provider.dart';
+import 'package:CodeKey/features/chat/presentation/screens/chat_screen.dart';
 
 class LessonsScreen extends ConsumerWidget {
   const LessonsScreen({super.key});
