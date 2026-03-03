@@ -6,13 +6,14 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/lessons/presentation/screens/lessons_screen.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/services/update_service.dart';
+import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://oqocrskourawlimqjvqc.supabase.co',
-    anonKey: 'sb_publishable_NDqUApsk1HiBm2cJZPfRnQ_b73AdaYk',
+    url: 'https://jxwhhhrovnqgbmfyptdi.supabase.co',
+    anonKey: 'sb_publishable_6m0K0dqX-8lB_CFzqj5bcA_TuPEOhsz',
   );
 
   runApp(const ProviderScope(child: MyApp()));
@@ -24,22 +25,9 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      title: 'Student Quiz App',
+      title: 'EduAssess Student',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
+      theme: AppTheme.lightTheme,
       home: const UpdateChecker(child: AppHome()),
       builder: (context, child) {
         return Stack(
@@ -88,8 +76,12 @@ class MyApp extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      Colors.red.shade900.withOpacity(0.95),
-                                      Colors.red.shade700.withOpacity(0.95),
+                                      Colors.red.shade900.withValues(
+                                        alpha: 0.95,
+                                      ),
+                                      Colors.red.shade700.withValues(
+                                        alpha: 0.95,
+                                      ),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -97,13 +89,15 @@ class MyApp extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.4),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.4,
+                                      ),
                                       blurRadius: 15,
                                       offset: const Offset(0, 8),
                                     ),
                                   ],
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     width: 1.5,
                                   ),
                                 ),

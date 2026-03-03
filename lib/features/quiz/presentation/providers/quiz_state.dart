@@ -16,5 +16,6 @@ class QuizState with _$QuizState {
     bool? isCurrentQuestionCorrect,
     dynamic currentCorrectAnswer,
     int? remainingSeconds,
+    @Default(true) bool showCorrection,
   }) = _QuizState;
 }

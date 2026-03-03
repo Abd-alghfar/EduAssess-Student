@@ -11,6 +11,7 @@ _$LessonImpl _$$LessonImplFromJson(Map<String, dynamic> json) => _$LessonImpl(
   title: json['title'] as String,
   description: json['description'] as String?,
   durationMinutes: (json['duration_minutes'] as num?)?.toInt(),
+  showCorrection: json['show_correction'] as bool? ?? true,
   createdAt: DateTime.parse(json['created_at'] as String),
 );
 
@@ -20,5 +21,6 @@ Map<String, dynamic> _$$LessonImplToJson(_$LessonImpl instance) =>
       'title': instance.title,
       'description': instance.description,
       'duration_minutes': instance.durationMinutes,
+      'show_correction': instance.showCorrection,
       'created_at': instance.createdAt.toIso8601String(),
     };

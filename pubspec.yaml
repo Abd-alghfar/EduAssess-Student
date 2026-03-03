@@ -47,6 +47,11 @@ dependencies:
   path_provider: ^2.1.5
   intl: ^0.20.2
   file_picker: ^10.3.10
+  shimmer: ^3.0.0
+  font_awesome_flutter: ^10.12.0
+  confetti: ^0.8.0
+  anim_search_bar: ^2.0.3
+  lottie: ^3.3.2
 
 flutter_launcher_icons:
   android: "launcher_icon"

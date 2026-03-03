@@ -27,6 +27,7 @@ mixin _$QuizState {
   bool? get isCurrentQuestionCorrect => throw _privateConstructorUsedError;
   dynamic get currentCorrectAnswer => throw _privateConstructorUsedError;
   int? get remainingSeconds => throw _privateConstructorUsedError;
+  bool get showCorrection => throw _privateConstructorUsedError;
 
   /// Create a copy of QuizState
   /// with the given fields replaced by the non-null parameter values.
@@ -51,6 +52,7 @@ abstract class $QuizStateCopyWith<$Res> {
     bool? isCurrentQuestionCorrect,
     dynamic currentCorrectAnswer,
     int? remainingSeconds,
+    bool showCorrection,
   });
 }
 
@@ -79,6 +81,7 @@ class _$QuizStateCopyWithImpl<$Res, $Val extends QuizState>
     Object? isCurrentQuestionCorrect = freezed,
     Object? currentCorrectAnswer = freezed,
     Object? remainingSeconds = freezed,
+    Object? showCorrection = null,
   }) {
     return _then(
       _value.copyWith(
@@ -122,6 +125,10 @@ class _$QuizStateCopyWithImpl<$Res, $Val extends QuizState>
                 ? _value.remainingSeconds
                 : remainingSeconds // ignore: cast_nullable_to_non_nullable
                       as int?,
+            showCorrection: null == showCorrection
+                ? _value.showCorrection
+                : showCorrection // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -148,6 +155,7 @@ abstract class _$$QuizStateImplCopyWith<$Res>
     bool? isCurrentQuestionCorrect,
     dynamic currentCorrectAnswer,
     int? remainingSeconds,
+    bool showCorrection,
   });
 }
 
@@ -175,6 +183,7 @@ class __$$QuizStateImplCopyWithImpl<$Res>
     Object? isCurrentQuestionCorrect = freezed,
     Object? currentCorrectAnswer = freezed,
     Object? remainingSeconds = freezed,
+    Object? showCorrection = null,
   }) {
     return _then(
       _$QuizStateImpl(
@@ -218,6 +227,10 @@ class __$$QuizStateImplCopyWithImpl<$Res>
             ? _value.remainingSeconds
             : remainingSeconds // ignore: cast_nullable_to_non_nullable
                   as int?,
+        showCorrection: null == showCorrection
+            ? _value.showCorrection
+            : showCorrection // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -237,6 +250,7 @@ class _$QuizStateImpl implements _QuizState {
     this.isCurrentQuestionCorrect,
     this.currentCorrectAnswer,
     this.remainingSeconds,
+    this.showCorrection = true,
   }) : _questions = questions,
        _answers = answers;
 
@@ -278,10 +292,13 @@ class _$QuizStateImpl implements _QuizState {
   final dynamic currentCorrectAnswer;
   @override
   final int? remainingSeconds;
+  @override
+  @JsonKey()
+  final bool showCorrection;
 
   @override
   String toString() {
-    return 'QuizState(questions: $questions, currentIndex: $currentIndex, isLoading: $isLoading, error: $error, isCompleted: $isCompleted, answers: $answers, isCurrentQuestionAnswered: $isCurrentQuestionAnswered, isCurrentQuestionCorrect: $isCurrentQuestionCorrect, currentCorrectAnswer: $currentCorrectAnswer, remainingSeconds: $remainingSeconds)';
+    return 'QuizState(questions: $questions, currentIndex: $currentIndex, isLoading: $isLoading, error: $error, isCompleted: $isCompleted, answers: $answers, isCurrentQuestionAnswered: $isCurrentQuestionAnswered, isCurrentQuestionCorrect: $isCurrentQuestionCorrect, currentCorrectAnswer: $currentCorrectAnswer, remainingSeconds: $remainingSeconds, showCorrection: $showCorrection)';
   }
 
   @override
@@ -316,7 +333,9 @@ class _$QuizStateImpl implements _QuizState {
               currentCorrectAnswer,
             ) &&
             (identical(other.remainingSeconds, remainingSeconds) ||
-                other.remainingSeconds == remainingSeconds));
+                other.remainingSeconds == remainingSeconds) &&
+            (identical(other.showCorrection, showCorrection) ||
+                other.showCorrection == showCorrection));
   }
 
   @override
@@ -332,6 +351,7 @@ class _$QuizStateImpl implements _QuizState {
     isCurrentQuestionCorrect,
     const DeepCollectionEquality().hash(currentCorrectAnswer),
     remainingSeconds,
+    showCorrection,
   );
 
   /// Create a copy of QuizState
@@ -355,6 +375,7 @@ abstract class _QuizState implements QuizState {
     final bool? isCurrentQuestionCorrect,
     final dynamic currentCorrectAnswer,
     final int? remainingSeconds,
+    final bool showCorrection,
   }) = _$QuizStateImpl;
 
   @override
@@ -377,6 +398,8 @@ abstract class _QuizState implements QuizState {
   dynamic get currentCorrectAnswer;
   @override
   int? get remainingSeconds;
+  @override
+  bool get showCorrection;
 
   /// Create a copy of QuizState
   /// with the given fields replaced by the non-null parameter values.

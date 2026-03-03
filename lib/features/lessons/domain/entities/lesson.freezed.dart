@@ -26,6 +26,8 @@ mixin _$Lesson {
   String? get description => throw _privateConstructorUsedError;
   @JsonKey(name: 'duration_minutes')
   int? get durationMinutes => throw _privateConstructorUsedError;
+  @JsonKey(name: 'show_correction')
+  bool get showCorrection => throw _privateConstructorUsedError;
   @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
@@ -48,6 +50,7 @@ abstract class $LessonCopyWith<$Res> {
     String title,
     String? description,
     @JsonKey(name: 'duration_minutes') int? durationMinutes,
+    @JsonKey(name: 'show_correction') bool showCorrection,
     @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
@@ -71,6 +74,7 @@ class _$LessonCopyWithImpl<$Res, $Val extends Lesson>
     Object? title = null,
     Object? description = freezed,
     Object? durationMinutes = freezed,
+    Object? showCorrection = null,
     Object? createdAt = null,
   }) {
     return _then(
@@ -91,6 +95,10 @@ class _$LessonCopyWithImpl<$Res, $Val extends Lesson>
                 ? _value.durationMinutes
                 : durationMinutes // ignore: cast_nullable_to_non_nullable
                       as int?,
+            showCorrection: null == showCorrection
+                ? _value.showCorrection
+                : showCorrection // ignore: cast_nullable_to_non_nullable
+                      as bool,
             createdAt: null == createdAt
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
@@ -114,6 +122,7 @@ abstract class _$$LessonImplCopyWith<$Res> implements $LessonCopyWith<$Res> {
     String title,
     String? description,
     @JsonKey(name: 'duration_minutes') int? durationMinutes,
+    @JsonKey(name: 'show_correction') bool showCorrection,
     @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
@@ -136,6 +145,7 @@ class __$$LessonImplCopyWithImpl<$Res>
     Object? title = null,
     Object? description = freezed,
     Object? durationMinutes = freezed,
+    Object? showCorrection = null,
     Object? createdAt = null,
   }) {
     return _then(
@@ -156,6 +166,10 @@ class __$$LessonImplCopyWithImpl<$Res>
             ? _value.durationMinutes
             : durationMinutes // ignore: cast_nullable_to_non_nullable
                   as int?,
+        showCorrection: null == showCorrection
+            ? _value.showCorrection
+            : showCorrection // ignore: cast_nullable_to_non_nullable
+                  as bool,
         createdAt: null == createdAt
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
@@ -173,6 +187,7 @@ class _$LessonImpl implements _Lesson {
     required this.title,
     this.description,
     @JsonKey(name: 'duration_minutes') this.durationMinutes,
+    @JsonKey(name: 'show_correction') this.showCorrection = true,
     @JsonKey(name: 'created_at') required this.createdAt,
   });
 
@@ -189,12 +204,15 @@ class _$LessonImpl implements _Lesson {
   @JsonKey(name: 'duration_minutes')
   final int? durationMinutes;
   @override
+  @JsonKey(name: 'show_correction')
+  final bool showCorrection;
+  @override
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'Lesson(id: $id, title: $title, description: $description, durationMinutes: $durationMinutes, createdAt: $createdAt)';
+    return 'Lesson(id: $id, title: $title, description: $description, durationMinutes: $durationMinutes, showCorrection: $showCorrection, createdAt: $createdAt)';
   }
 
   @override
@@ -208,6 +226,8 @@ class _$LessonImpl implements _Lesson {
                 other.description == description) &&
             (identical(other.durationMinutes, durationMinutes) ||
                 other.durationMinutes == durationMinutes) &&
+            (identical(other.showCorrection, showCorrection) ||
+                other.showCorrection == showCorrection) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -220,6 +240,7 @@ class _$LessonImpl implements _Lesson {
     title,
     description,
     durationMinutes,
+    showCorrection,
     createdAt,
   );
 
@@ -243,6 +264,7 @@ abstract class _Lesson implements Lesson {
     required final String title,
     final String? description,
     @JsonKey(name: 'duration_minutes') final int? durationMinutes,
+    @JsonKey(name: 'show_correction') final bool showCorrection,
     @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$LessonImpl;
 
@@ -257,6 +279,9 @@ abstract class _Lesson implements Lesson {
   @override
   @JsonKey(name: 'duration_minutes')
   int? get durationMinutes;
+  @override
+  @JsonKey(name: 'show_correction')
+  bool get showCorrection;
   @override
   @JsonKey(name: 'created_at')
   DateTime get createdAt;

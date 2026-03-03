@@ -11,6 +11,7 @@ class Lesson with _$Lesson {
     required String title,
     String? description,
     @JsonKey(name: 'duration_minutes') int? durationMinutes,
+    @JsonKey(name: 'show_correction') @Default(true) bool showCorrection,
     @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _Lesson;
 

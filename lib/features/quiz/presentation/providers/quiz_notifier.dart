@@ -53,6 +53,7 @@ class QuizNotifier extends _$QuizNotifier {
         answers: answersMap,
         isLoading: false,
         isCompleted: alreadyCompleted,
+        showCorrection: lesson.showCorrection,
         remainingSeconds: lesson.durationMinutes != null
             ? lesson.durationMinutes! * 60
             : null,
