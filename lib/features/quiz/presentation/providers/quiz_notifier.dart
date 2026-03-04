@@ -1,10 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:CodeKey/features/quiz/domain/entities/answer.dart';
-import 'package:CodeKey/features/quiz/domain/entities/question.dart';
-import 'package:CodeKey/features/quiz/presentation/providers/quiz_repository_provider.dart';
-import 'package:CodeKey/features/quiz/presentation/providers/quiz_state.dart';
-import 'package:CodeKey/features/auth/presentation/providers/auth_notifier.dart';
-import 'package:CodeKey/features/lessons/presentation/providers/lesson_repository_provider.dart';
+import 'package:eduassess_student/features/quiz/domain/entities/answer.dart';
+import 'package:eduassess_student/features/quiz/domain/entities/question.dart';
+import 'package:eduassess_student/features/quiz/presentation/providers/quiz_repository_provider.dart';
+import 'package:eduassess_student/features/quiz/presentation/providers/quiz_state.dart';
+import 'package:eduassess_student/features/auth/presentation/providers/auth_notifier.dart';
+import 'package:eduassess_student/features/lessons/presentation/providers/lesson_repository_provider.dart';
 import 'dart:async';
 
 part 'quiz_notifier.g.dart';

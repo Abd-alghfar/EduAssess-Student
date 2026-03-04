@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "CodeKey" "\0"
+            VALUE "CompanyName", "EduAssess" "\0"
+            VALUE "FileDescription", "EduAssess Student Platform" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "CodeKey" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "CodeKey.exe" "\0"
-            VALUE "ProductName", "CodeKey" "\0"
+            VALUE "InternalName", "EduAssessStudent" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 EduAssess. All rights reserved." "\0"
+            VALUE "OriginalFilename", "EduAssessStudent.exe" "\0"
+            VALUE "ProductName", "EduAssess Student" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

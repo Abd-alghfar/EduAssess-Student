@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:CodeKey/features/auth/presentation/providers/auth_notifier.dart';
+import 'package:eduassess_student/features/auth/presentation/providers/auth_notifier.dart';
 import '../../domain/models/message.dart';
 
 final chatMessagesProvider = StreamProvider<List<ChatMessage>>((ref) {

@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'lesson_repository_provider.dart';
-import 'package:CodeKey/features/auth/presentation/providers/auth_notifier.dart';
+import 'package:eduassess_student/features/auth/presentation/providers/auth_notifier.dart';
 
 part 'completed_lessons_provider.g.dart';
 

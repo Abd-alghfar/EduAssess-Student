@@ -117,24 +117,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Premium Logo Badge
+                    // Premium Logo Badge (Glassmorphism style)
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          width: 2,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 30,
                             offset: const Offset(0, 15),
                           ),
                         ],
                       ),
                       child: const Icon(
-                        FontAwesomeIcons.graduationCap,
+                        FontAwesomeIcons.penNib,
                         size: 60,
-                        color: Color(0xFF1E3A8A),
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -157,15 +161,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 48),
-                    // Login Card
+                    // Login Card (Glassmorphism)
                     Container(
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.white.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(32),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: Colors.black.withValues(alpha: 0.15),
                             blurRadius: 40,
                             offset: const Offset(0, 20),
                           ),

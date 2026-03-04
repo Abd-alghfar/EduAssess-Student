@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:CodeKey/features/lessons/presentation/providers/lessons_notifier.dart';
-import 'package:CodeKey/features/quiz/presentation/screens/quiz_screen.dart';
-import 'package:CodeKey/features/auth/presentation/providers/auth_notifier.dart';
-import 'package:CodeKey/features/auth/presentation/providers/profile_provider.dart';
-import 'package:CodeKey/features/lessons/presentation/providers/completed_lessons_provider.dart';
-import 'package:CodeKey/features/chat/presentation/screens/chat_screen.dart';
-import 'package:CodeKey/core/widgets/shimmer_loader.dart';
+import 'package:eduassess_student/features/lessons/presentation/providers/lessons_notifier.dart';
+import 'package:eduassess_student/features/quiz/presentation/screens/quiz_screen.dart';
+import 'package:eduassess_student/features/auth/presentation/providers/auth_notifier.dart';
+import 'package:eduassess_student/features/auth/presentation/providers/profile_provider.dart';
+import 'package:eduassess_student/features/lessons/presentation/providers/completed_lessons_provider.dart';
+import 'package:eduassess_student/features/chat/presentation/screens/chat_screen.dart';
+import 'package:eduassess_student/core/widgets/shimmer_loader.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class LessonsScreen extends ConsumerWidget {
