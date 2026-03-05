@@ -4,6 +4,7 @@ import 'package:confetti/confetti.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/quiz_notifier.dart';
 import '../widgets/question_renderer.dart';
+import '../../../../core/error/failure.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
   final String lessonId;
@@ -476,29 +477,42 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                FontAwesomeIcons.circleExclamation,
-                size: 64,
-                color: Colors.red,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Something went wrong',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                error,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
+                FontAwesomeIcons.triangleExclamation,
+                size: 80,
+                color: Color(0xFFE11D48),
               ),
               const SizedBox(height: 32),
-              ElevatedButton(
+              const Text(
+                'عذراً، حدث خطأ ما',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                Failure.getFriendlyMessage(error),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF64748B),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 48),
+              ElevatedButton.icon(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Go Back'),
+                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                label: const Text('العودة للخلف'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E3A8A),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(200, 54),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
               ),
             ],
           ),

@@ -6,29 +6,38 @@ enum ConnectivityStatus { isConnected, isDisconnected }
 
 final connectivityStatusProvider = StreamProvider<ConnectivityStatus>((ref) {
   final controller = StreamController<ConnectivityStatus>();
+  Timer? debounceTimer;
 
-  // Check initial connection
-  InternetConnection().hasInternetAccess.then((hasConnection) {
-    if (hasConnection) {
+  void checkInitial() async {
+    final hasConnection = await InternetConnection().hasInternetAccess;
+    controller.add(
+      hasConnection
+          ? ConnectivityStatus.isConnected
+          : ConnectivityStatus.isDisconnected,
+    );
+  }
+
+  checkInitial();
+
+  final subscription = InternetConnection().onStatusChange.listen((status) {
+    if (status == InternetStatus.connected) {
+      debounceTimer?.cancel();
       controller.add(ConnectivityStatus.isConnected);
     } else {
-      controller.add(ConnectivityStatus.isDisconnected);
-    }
-  });
-
-  // Listen for changes
-  final subscription = InternetConnection().onStatusChange.listen((status) {
-    switch (status) {
-      case InternetStatus.connected:
-        controller.add(ConnectivityStatus.isConnected);
-        break;
-      case InternetStatus.disconnected:
-        controller.add(ConnectivityStatus.isDisconnected);
-        break;
+      // Wait 5 seconds before reporting disconnection to avoid flickering on weak signal
+      debounceTimer?.cancel();
+      debounceTimer = Timer(const Duration(seconds: 5), () async {
+        final stillDisconnected =
+            !(await InternetConnection().hasInternetAccess);
+        if (stillDisconnected) {
+          controller.add(ConnectivityStatus.isDisconnected);
+        }
+      });
     }
   });
 
   ref.onDispose(() {
+    debounceTimer?.cancel();
     subscription.cancel();
     controller.close();
   });

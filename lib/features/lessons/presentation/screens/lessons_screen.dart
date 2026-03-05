@@ -8,6 +8,7 @@ import 'package:eduassess_student/features/lessons/presentation/providers/comple
 import 'package:eduassess_student/features/chat/presentation/screens/chat_screen.dart';
 import 'package:eduassess_student/core/widgets/shimmer_loader.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:eduassess_student/core/error/failure.dart';
 
 class LessonsScreen extends ConsumerWidget {
   const LessonsScreen({super.key});
@@ -124,8 +125,7 @@ class LessonsScreen extends ConsumerWidget {
                       child: LessonListShimmer(),
                     ),
                   ),
-                  error: (error, stack) =>
-                      const SliverFillRemaining(child: SizedBox.shrink()),
+                  error: (error, stack) => _buildErrorState(ref, error),
                 );
               },
               loading: () => const SliverFillRemaining(
@@ -134,8 +134,7 @@ class LessonsScreen extends ConsumerWidget {
                   child: LessonListShimmer(),
                 ),
               ),
-              error: (error, stack) =>
-                  const SliverFillRemaining(child: SizedBox.shrink()),
+              error: (error, stack) => _buildErrorState(ref, error),
             ),
           ),
 
@@ -486,6 +485,51 @@ class LessonsScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildErrorState(WidgetRef ref, dynamic error) {
+    return SliverFillRemaining(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                FontAwesomeIcons.circleExclamation,
+                size: 60,
+                color: Colors.red[300],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'عذراً، فشل جلب البيانات',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                Failure.getFriendlyMessage(error),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 32),
+              TextButton.icon(
+                onPressed: () {
+                  ref.invalidate(lessonsNotifierProvider);
+                  ref.invalidate(userProfileProvider);
+                  ref.invalidate(lessonProgressProvider);
+                },
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

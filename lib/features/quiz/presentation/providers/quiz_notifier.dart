@@ -5,6 +5,7 @@ import 'package:eduassess_student/features/quiz/presentation/providers/quiz_repo
 import 'package:eduassess_student/features/quiz/presentation/providers/quiz_state.dart';
 import 'package:eduassess_student/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:eduassess_student/features/lessons/presentation/providers/lesson_repository_provider.dart';
+import 'package:eduassess_student/core/error/failure.dart';
 import 'dart:async';
 
 part 'quiz_notifier.g.dart';
@@ -174,7 +175,7 @@ class QuizNotifier extends _$QuizNotifier {
         currentCorrectAnswer: question.config['correct_answer'],
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: Failure.getFriendlyMessage(e));
     }
   }
 

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart' as intl;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/chat_notifier.dart';
 import '../../domain/models/message.dart';
+import '../../../../core/error/failure.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -58,9 +59,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       setState(() => _isSending = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(Failure.getFriendlyMessage(e)),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
       }
     }
   }
@@ -130,7 +134,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+              error: (e, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    Failure.getFriendlyMessage(e),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
             ),
           ),
           if (_selectedImage != null)
