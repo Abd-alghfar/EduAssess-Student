@@ -12,8 +12,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://jxwhhhrovnqgbmfyptdi.supabase.co',
-    anonKey: 'sb_publishable_6m0K0dqX-8lB_CFzqj5bcA_TuPEOhsz',
+    url: 'https://gukxldcdxqxpcgddrqnt.supabase.co',
+    anonKey: 'sb_publishable_RQN0JMDBn8gaIO1E9vjtmQ_mtM4cuA7',
   );
 
   runApp(const ProviderScope(child: MyApp()));
@@ -76,12 +76,8 @@ class MyApp extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      Colors.red.shade900.withValues(
-                                        alpha: 0.95,
-                                      ),
-                                      Colors.red.shade700.withValues(
-                                        alpha: 0.95,
-                                      ),
+                                      Colors.red.shade900.withOpacity(0.95),
+                                      Colors.red.shade700.withOpacity(0.95),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -89,15 +85,13 @@ class MyApp extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.4,
-                                      ),
+                                      color: Colors.black.withOpacity(0.4),
                                       blurRadius: 15,
                                       offset: const Offset(0, 8),
                                     ),
                                   ],
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
+                                    color: Colors.white.withOpacity(0.2),
                                     width: 1.5,
                                   ),
                                 ),
