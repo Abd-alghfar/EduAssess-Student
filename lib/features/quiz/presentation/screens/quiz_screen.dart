@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:confetti/confetti.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../domain/entities/question.dart';
 import '../providers/quiz_notifier.dart';
 import '../widgets/question_renderer.dart';
 import '../../../../core/error/failure.dart';
@@ -345,8 +346,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   Widget _buildResultsView(dynamic quizState) {
     final correctCount = quizState.answers.entries.where((e) {
       final q = quizState.questions.firstWhere((q) => q.id == e.key);
-      return e.value.toString().trim().toLowerCase() ==
-          q.config['correct_answer'].toString().trim().toLowerCase();
+      return _isAnswerCorrect(q, e.value);
     }).length;
     final totalCount = quizState.questions.length;
     final scorePercent = totalCount > 0
@@ -466,6 +466,34 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         ],
       ),
     );
+  }
+
+  bool _isAnswerCorrect(dynamic question, dynamic value) {
+    switch (question.questionType) {
+      case QuestionType.mcq:
+      case QuestionType.trueFalse:
+      case QuestionType.completion:
+      case QuestionType.code:
+      case QuestionType.codeCompletion:
+      case QuestionType.essay:
+        final correct = question.config['correct_answer'];
+        if (correct == null) return false;
+        return value.toString().trim().toLowerCase() ==
+            correct.toString().trim().toLowerCase();
+      case QuestionType.multiSelect:
+        final correct = List<String>.from(
+          question.config['correct_answers'] ?? [],
+        );
+        final user = (value as List?)?.map((e) => e.toString()).toList() ?? [];
+        if (correct.length != user.length) return false;
+        final c = correct.map((e) => e.toLowerCase()).toSet();
+        final u = user.map((e) => e.toLowerCase()).toSet();
+        return c.length == u.length && c.containsAll(u);
+      case QuestionType.matching:
+      case QuestionType.ordering:
+        return false;
+    }
+    return false;
   }
 
   Widget _buildErrorView(String error) {

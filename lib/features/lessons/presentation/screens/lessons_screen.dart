@@ -26,7 +26,7 @@ class LessonsScreen extends ConsumerWidget {
 
     // Using white background with subtle grey for a clean, academic look
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF6F8FB),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -268,6 +268,7 @@ class LessonsScreen extends ConsumerWidget {
     int completed,
     double progress,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -378,6 +379,27 @@ class LessonsScreen extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Text(
+              total == 0
+                  ? 'No exams assigned yet.'
+                  : completed == total
+                  ? 'Great job! You completed all exams.'
+                  : 'Keep going — ${total - completed} exams remaining.',
+              style: TextStyle(
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -477,8 +499,8 @@ class LessonsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isCompleted
-              ? Colors.green.withValues(alpha: 0.1)
-              : Colors.grey.withValues(alpha: 0.1),
+              ? Colors.green.withValues(alpha: 0.2)
+              : Colors.grey.withValues(alpha: 0.15),
         ),
         boxShadow: [
           BoxShadow(
@@ -534,70 +556,74 @@ class LessonsScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isCompleted
-                        ? Colors.green[50]
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Icon(
-                    isCompleted
-                        ? FontAwesomeIcons.circleCheck
-                        : FontAwesomeIcons.book,
-                    color: isCompleted ? Colors.green : const Color(0xFF1E3A8A),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              lesson.title,
-                              style: const TextStyle(
-                                color: Color(0xFF1E293B),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ],
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isCompleted
+                            ? Colors.green[50]
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(height: 8),
-                      ExamStatusBadge(lesson: lesson, isCompleted: isCompleted),
-                      const SizedBox(height: 12),
-                      Text(
+                      child: Icon(
                         isCompleted
-                            ? 'Score: ${progress['attained']} / ${progress['total']} (Passed)'
-                            : (lesson.description ?? 'Start this course now'),
-                        style: TextStyle(
-                          color: isCompleted
-                              ? Colors.green[700]
-                              : Colors.grey[600],
-                          fontSize: 14,
-                          fontWeight: isCompleted
-                              ? FontWeight.bold
-                              : FontWeight.w500,
+                            ? FontAwesomeIcons.circleCheck
+                            : FontAwesomeIcons.book,
+                        color:
+                            isCompleted ? Colors.green : const Color(0xFF1E3A8A),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        lesson.title,
+                        style: const TextStyle(
+                          color: Color(0xFF1E293B),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.blueGrey[200],
+                      size: 16,
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.blueGrey[200],
-                  size: 16,
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    ExamStatusBadge(lesson: lesson, isCompleted: isCompleted),
+                    const SizedBox(width: 8),
+                    if (lesson.durationMinutes != null)
+                      _buildInfoChip(
+                        '${lesson.durationMinutes} min',
+                        const Color(0xFF1E3A8A),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isCompleted
+                      ? 'Score: ${progress['attained']} / ${progress['total']}'
+                      : (lesson.description ?? 'Start this exam now'),
+                  style: TextStyle(
+                    color:
+                        isCompleted ? Colors.green[700] : Colors.grey[600],
+                    fontSize: 14,
+                    fontWeight:
+                        isCompleted ? FontWeight.bold : FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -634,6 +660,25 @@ class LessonsScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInfoChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 

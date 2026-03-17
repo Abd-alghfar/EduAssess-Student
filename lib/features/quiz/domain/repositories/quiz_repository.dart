@@ -3,11 +3,12 @@ import '../entities/answer.dart';
 
 abstract class QuizRepository {
   Future<List<Question>> getQuestions(String lessonId);
-  Future<void> submitAnswer(Answer answer);
-  Future<List<Answer>> getStudentAnswers(String lessonId, String userId);
-  Future<Map<String, dynamic>> getLessonProgress(
+  Future<String> getOrCreateAttempt(String lessonId, String userId);
+  Future<List<Answer>> getAttemptAnswers(String attemptId);
+  Future<void> submitAnswer(String attemptId, Answer answer);
+  Future<Map<String, dynamic>?> getLatestAttempt(
     String lessonId,
     String userId,
   );
-  Future<void> completeLesson(String lessonId, String userId, int totalScore);
+  Future<void> completeAttempt(String attemptId, int totalScore);
 }

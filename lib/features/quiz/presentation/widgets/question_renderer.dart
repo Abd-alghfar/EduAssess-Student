@@ -3,6 +3,7 @@ import '../../domain/entities/question.dart';
 import 'mcq_widget.dart';
 import 'true_false_widget.dart';
 import 'essay_widget.dart';
+import 'multi_select_widget.dart';
 
 class QuestionRenderer extends StatelessWidget {
   final Question question;
@@ -26,14 +27,30 @@ class QuestionRenderer extends StatelessWidget {
           onSelected: onAnswerSubmitted,
           initialValue: initialAnswer as String?,
         );
+      case QuestionType.multiSelect:
+        final options = List<String>.from(question.config['options'] ?? []);
+        return MultiSelectWidget(
+          options: options,
+          onSelected: onAnswerSubmitted,
+          initialValue: initialAnswer as List<String>?,
+        );
       case QuestionType.trueFalse:
         return TrueFalseWidget(
           onSelected: onAnswerSubmitted,
           initialValue: initialAnswer as bool?,
         );
+      case QuestionType.matching:
+      case QuestionType.ordering:
+        return Center(
+          child: Text(
+            'هذا النوع غير مدعوم حالياً.',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        );
       case QuestionType.essay:
       case QuestionType.code:
       case QuestionType.codeCompletion:
+      case QuestionType.completion:
         return EssayWidget(
           onSubmit: onAnswerSubmitted,
           initialValue: initialAnswer as String?,

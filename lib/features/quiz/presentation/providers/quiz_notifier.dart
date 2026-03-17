@@ -13,6 +13,7 @@ part 'quiz_notifier.g.dart';
 @riverpod
 class QuizNotifier extends _$QuizNotifier {
   Timer? _timer;
+  String? _attemptId;
 
   @override
   QuizState build(String lessonId) {
@@ -46,14 +47,14 @@ class QuizNotifier extends _$QuizNotifier {
         throw 'عذراً، انتهى الوقت المخصص لهذا الاختبار ولم يعد متاحاً.';
       }
 
-      final studentAnswers = await repository.getStudentAnswers(
+      final latestAttempt = await repository.getLatestAttempt(
         lessonId,
         user.id,
       );
+      final bool alreadyCompleted = latestAttempt?['is_completed'] == true;
+      _attemptId = await repository.getOrCreateAttempt(lessonId, user.id);
 
-      final progress = await repository.getLessonProgress(lessonId, user.id);
-      final bool alreadyCompleted =
-          progress['id'] != null || progress['completed_at'] != null;
+      final studentAnswers = await repository.getAttemptAnswers(_attemptId!);
 
       final answersMap = <String, dynamic>{};
       for (final answer in studentAnswers) {
@@ -95,7 +96,7 @@ class QuizNotifier extends _$QuizNotifier {
       state = state.copyWith(
         isCurrentQuestionAnswered: true,
         isCurrentQuestionCorrect: isCorrect,
-        currentCorrectAnswer: currentQuestion.config['correct_answer'],
+        currentCorrectAnswer: _formatCorrectAnswer(currentQuestion),
       );
     } else {
       state = state.copyWith(
@@ -131,10 +132,10 @@ class QuizNotifier extends _$QuizNotifier {
 
     try {
       final user = ref.read(authNotifierProvider);
-      if (user != null) {
+      if (user != null && _attemptId != null) {
         await ref
             .read(quizRepositoryProvider)
-            .completeLesson(lessonId, user.id, attainedPoints);
+            .completeAttempt(_attemptId!, attainedPoints);
       }
     } catch (e) {
       // Log error but complete the quiz anyway
@@ -175,7 +176,12 @@ class QuizNotifier extends _$QuizNotifier {
     );
 
     try {
-      await ref.read(quizRepositoryProvider).submitAnswer(answer);
+      if (_attemptId == null) {
+        _attemptId = await ref
+            .read(quizRepositoryProvider)
+            .getOrCreateAttempt(lessonId, userId);
+      }
+      await ref.read(quizRepositoryProvider).submitAnswer(_attemptId!, answer);
       final newAnswers = Map<String, dynamic>.from(state.answers);
       newAnswers[question.id] = value;
 
@@ -183,7 +189,7 @@ class QuizNotifier extends _$QuizNotifier {
         answers: newAnswers,
         isCurrentQuestionAnswered: true,
         isCurrentQuestionCorrect: isCorrect,
-        currentCorrectAnswer: question.config['correct_answer'],
+        currentCorrectAnswer: _formatCorrectAnswer(question),
       );
     } catch (e) {
       state = state.copyWith(error: Failure.getFriendlyMessage(e));
@@ -191,12 +197,42 @@ class QuizNotifier extends _$QuizNotifier {
   }
 
   bool _checkAnswer(Question question, dynamic value) {
-    final correctAnswer = question.config['correct_answer'];
-    if (correctAnswer == null) return false;
+    switch (question.questionType) {
+      case QuestionType.mcq:
+      case QuestionType.trueFalse:
+      case QuestionType.completion:
+      case QuestionType.code:
+      case QuestionType.codeCompletion:
+      case QuestionType.essay:
+        final correctAnswer = question.config['correct_answer'];
+        if (correctAnswer == null) return false;
+        return value.toString().trim().toLowerCase() ==
+            correctAnswer.toString().trim().toLowerCase();
+      case QuestionType.multiSelect:
+        final correct = List<String>.from(
+          question.config['correct_answers'] ?? [],
+        );
+        final user = (value as List?)?.map((e) => e.toString()).toList() ?? [];
+        if (correct.length != user.length) return false;
+        final norm = correct.map((e) => e.toLowerCase()).toSet();
+        final userNorm = user.map((e) => e.toLowerCase()).toSet();
+        return norm.length == userNorm.length && norm.containsAll(userNorm);
+      case QuestionType.matching:
+      case QuestionType.ordering:
+        return false;
+    }
+  }
 
-    final userVal = value.toString().trim().toLowerCase();
-    final correctVal = correctAnswer.toString().trim().toLowerCase();
-
-    return userVal == correctVal;
+  String _formatCorrectAnswer(Question question) {
+    switch (question.questionType) {
+      case QuestionType.multiSelect:
+        return (question.config['correct_answers'] as List? ?? [])
+            .join(', ');
+      case QuestionType.matching:
+      case QuestionType.ordering:
+        return '';
+      default:
+        return question.config['correct_answer']?.toString() ?? '';
+    }
   }
 }

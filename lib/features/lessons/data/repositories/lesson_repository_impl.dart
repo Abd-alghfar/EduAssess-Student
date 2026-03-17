@@ -21,11 +21,12 @@ class LessonRepositoryImpl implements LessonRepository {
   Future<Map<String, Map<String, int>>> getLessonProgressMap(
     String userId,
   ) async {
-    // 1. Get attained scores
+    // 1. Get completed attempts
     final progressResponse = await _client
-        .from('student_progress')
-        .select('lesson_id, total_score')
-        .eq('student_id', userId);
+        .from('exam_attempts')
+        .select('lesson_id, score')
+        .eq('student_id', userId)
+        .eq('is_completed', true);
 
     // 2. Get total possible points for all lessons
     final questionsResponse = await _client
@@ -42,8 +43,11 @@ class LessonRepositoryImpl implements LessonRepository {
     final Map<String, Map<String, int>> resultMap = {};
     for (final item in (progressResponse as List)) {
       final lessonId = item['lesson_id'] as String;
+      final score = (item['score'] ?? 0).toDouble();
+      final existing = resultMap[lessonId]?['attained'] ?? 0;
+      final best = score.round() > existing ? score.round() : existing;
       resultMap[lessonId] = {
-        'attained': item['total_score'] as int,
+        'attained': best,
         'total': totalPointsMap[lessonId] ?? 0,
       };
     }

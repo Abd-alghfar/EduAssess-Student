@@ -103,6 +103,10 @@ class UpdateService {
         );
       }
     } catch (e) {
+      if (e is PostgrestException && e.code == 'PGRST205') {
+        // Table not found: ignore in environments where app_updates isn't set up.
+        return;
+      }
       debugPrint('Error checking for updates: $e');
     }
   }
