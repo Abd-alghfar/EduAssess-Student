@@ -13,6 +13,12 @@ enum QuestionType {
   trueFalse,
   @JsonValue('essay')
   essay,
+  @JsonValue('matching')
+  matching,
+  @JsonValue('ordering')
+  ordering,
+  @JsonValue('completion')
+  completion,
   @JsonValue('code')
   code,
   @JsonValue('code_completion')

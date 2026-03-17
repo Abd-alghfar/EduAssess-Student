@@ -6,6 +6,8 @@ import 'package:eduassess_student/features/auth/presentation/providers/auth_noti
 import 'package:eduassess_student/features/auth/presentation/providers/profile_provider.dart';
 import 'package:eduassess_student/features/lessons/presentation/providers/completed_lessons_provider.dart';
 import 'package:eduassess_student/features/chat/presentation/screens/chat_screen.dart';
+import 'package:eduassess_student/features/announcements/presentation/providers/announcements_provider.dart';
+import 'package:eduassess_student/features/announcements/domain/models/announcement.dart';
 import 'package:eduassess_student/core/widgets/shimmer_loader.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:eduassess_student/core/error/failure.dart';
@@ -20,6 +22,7 @@ class LessonsScreen extends ConsumerWidget {
     final user = ref.watch(authNotifierProvider);
     final profileAsync = ref.watch(userProfileProvider);
     final progressAsync = ref.watch(lessonProgressProvider);
+    final announcementsAsync = ref.watch(announcementsProvider);
 
     // Using white background with subtle grey for a clean, academic look
     return Scaffold(
@@ -51,6 +54,16 @@ class LessonsScreen extends ConsumerWidget {
                   error: (_, __) => const SizedBox.shrink(),
                 ),
                 loading: () => const CodeKeyShimmer.rectangular(height: 180),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: announcementsAsync.when(
+                data: (items) => _buildAnnouncementsCard(items),
+                loading: () => const CodeKeyShimmer.rectangular(height: 110),
                 error: (_, __) => const SizedBox.shrink(),
               ),
             ),
@@ -365,6 +378,86 @@ class LessonsScreen extends ConsumerWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnnouncementsCard(List<Announcement> items) {
+    if (items.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.campaign_outlined, color: Colors.grey.shade400),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'لا توجد إعلانات جديدة حالياً.',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.campaign_rounded, color: Color(0xFF1E3A8A)),
+              SizedBox(width: 8),
+              Text(
+                'إعلانات المنصة',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...items.take(3).map((a) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    a.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    a.body,
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
