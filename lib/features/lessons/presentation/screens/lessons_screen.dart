@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:eduassess_student/features/lessons/presentation/providers/lessons_notifier.dart';
 import 'package:eduassess_student/features/quiz/presentation/screens/quiz_screen.dart';
 import 'package:eduassess_student/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:eduassess_student/features/auth/presentation/providers/profile_provider.dart';
 import 'package:eduassess_student/features/lessons/presentation/providers/completed_lessons_provider.dart';
-import 'package:eduassess_student/features/chat/presentation/screens/chat_screen.dart';
 import 'package:eduassess_student/features/announcements/presentation/providers/announcements_provider.dart';
 import 'package:eduassess_student/features/announcements/domain/models/announcement.dart';
 import 'package:eduassess_student/core/widgets/shimmer_loader.dart';
@@ -24,406 +24,611 @@ class LessonsScreen extends ConsumerWidget {
     final progressAsync = ref.watch(lessonProgressProvider);
     final announcementsAsync = ref.watch(announcementsProvider);
 
-    // Using white background with subtle grey for a clean, academic look
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildSliverAppBar(context, profileAsync, user, ref),
+      backgroundColor: const Color(0xFFF7F4EF),
+      body: Stack(
+        children: [
+          const _Backdrop(),
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: _TopBar(
+                  profileAsync: profileAsync,
+                  user: user,
+                  onRefresh: () {
+                    ref.read(lessonsNotifierProvider.notifier).refresh();
+                    ref.invalidate(lessonProgressProvider);
+                    ref.invalidate(userProfileProvider);
+                    ref.invalidate(announcementsProvider);
+                  },
+                  onLogout: () {
+                    ref.read(authNotifierProvider.notifier).signOut();
+                  },
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: lessonsAsync.when(
+                    data: (lessons) => progressAsync.when(
+                      data: (progressMap) {
+                        final total = lessons.length;
+                        final completed = progressMap.length;
+                        final progress = total > 0 ? completed / total : 0.0;
+                        final past = lessons.where((lesson) {
+                          final expiresAt = lesson.expiresAt as DateTime?;
+                          final isCompleted = progressMap.containsKey(lesson.id);
+                          return !isCompleted &&
+                              expiresAt != null &&
+                              DateTime.now().isAfter(expiresAt);
+                        }).length;
+                        final upcomingRaw = total - completed - past;
+                        final upcoming = upcomingRaw < 0 ? 0 : upcomingRaw;
+                        return _ProgressCard(
+                          total: total,
+                          completed: completed,
+                          upcoming: upcoming,
+                          past: past,
+                          progress: progress,
+                        );
+                      },
+                      loading: () => const CodeKeyShimmer.rectangular(
+                        height: 190,
+                      ),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                    loading: () => const CodeKeyShimmer.rectangular(
+                      height: 190,
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: _SectionTitle(
+                    title: 'إعلانات المعلم',
+                    subtitle: 'آخر التنبيهات والملاحظات',
+                    icon: FontAwesomeIcons.solidBell,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: announcementsAsync.when(
+                    data: (items) => _AnnouncementsPanel(items: items),
+                    loading: () => const CodeKeyShimmer.rectangular(height: 140),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
+                  child: _SectionTitle(
+                    title: 'الامتحانات القادمة',
+                    subtitle: 'قائمة الامتحانات المتاحة',
+                    icon: FontAwesomeIcons.clipboardList,
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: lessonsAsync.when(
+                  data: (lessons) {
+                    final now = DateTime.now();
+                    final visibleLessons = lessons.where((l) {
+                      if (l.expiresAt != null && now.isAfter(l.expiresAt!)) {
+                        return progressAsync.maybeWhen(
+                          data: (p) => p.containsKey(l.id),
+                          orElse: () => false,
+                        );
+                      }
+                      return true;
+                    }).toList();
 
-          // Welcome Card & Progress
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: lessonsAsync.when(
-                data: (lessons) => progressAsync.when(
-                  data: (progressMap) {
-                    final total = lessons.length;
-                    final completed = progressMap.length;
-                    final progress = total > 0 ? completed / total : 0.0;
+                    if (visibleLessons.isEmpty) {
+                      return const SliverFillRemaining(child: _EmptyState());
+                    }
 
-                    return _buildProgressCard(
-                      context,
-                      total,
-                      completed,
-                      progress,
+                    return progressAsync.when(
+                      data: (progressMap) => SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final lesson = visibleLessons[index];
+                          final progress = progressMap[lesson.id];
+                          final isCompleted = progress != null;
+                          return _AnimatedExamTile(
+                            index: index,
+                            child: _LessonTile(
+                              lesson: lesson,
+                              progress: progress,
+                              isCompleted: isCompleted,
+                              onTap: () async {
+                                final now = DateTime.now();
+                                final scheduledAt = lesson.scheduledAt;
+                                final expiresAt = lesson.expiresAt;
+
+                                if (!isCompleted &&
+                                    scheduledAt != null &&
+                                    now.isBefore(scheduledAt)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'يبدأ الامتحان بعد ${scheduledAt.difference(now).inMinutes} دقيقة',
+                                      ),
+                                      backgroundColor: const Color(0xFFB45309),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                if (!isCompleted &&
+                                    expiresAt != null &&
+                                    now.isAfter(expiresAt)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'انتهت صلاحية هذا الامتحان.',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        QuizScreen(lessonId: lesson.id),
+                                  ),
+                                );
+                                ref.invalidate(lessonProgressProvider);
+                              },
+                            ),
+                          );
+                        }, childCount: visibleLessons.length),
+                      ),
+                      loading: () => const SliverFillRemaining(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: LessonListShimmer(),
+                        ),
+                      ),
+                      error: (error, stack) => _ErrorState(ref: ref, error: error),
                     );
                   },
-                  loading: () => const CodeKeyShimmer.rectangular(height: 180),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-                loading: () => const CodeKeyShimmer.rectangular(height: 180),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              child: announcementsAsync.when(
-                data: (items) => _buildAnnouncementsCard(items),
-                loading: () => const CodeKeyShimmer.rectangular(height: 110),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ),
-          ),
-
-          // Lessons List Header
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(24, 24, 24, 16),
-              child: Row(
-                children: [
-                  Icon(
-                    FontAwesomeIcons.layerGroup,
-                    size: 18,
-                    color: Color(0xFF1E3A8A),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Active Exams',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Lessons Grid/List
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: lessonsAsync.when(
-              data: (lessons) {
-                // Filter out expired lessons not completed
-                final now = DateTime.now();
-                final visibleLessons = lessons.where((l) {
-                  if (l.expiresAt != null && now.isAfter(l.expiresAt!)) {
-                    // Check if student completed it, if so keep it visible
-                    return progressAsync.maybeWhen(
-                      data: (p) => p.containsKey(l.id),
-                      orElse: () => false,
-                    );
-                  }
-                  return true;
-                }).toList();
-
-                if (visibleLessons.isEmpty) {
-                  return const SliverFillRemaining(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            FontAwesomeIcons.folderOpen,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text('No active exams available.'),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                return progressAsync.when(
-                  data: (progressMap) => SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final lesson = visibleLessons[index];
-                      final progress = progressMap[lesson.id];
-                      final isCompleted = progress != null;
-
-                      return _buildLessonCard(
-                        context,
-                        ref,
-                        lesson,
-                        progress,
-                        isCompleted,
-                      );
-                    }, childCount: visibleLessons.length),
-                  ),
                   loading: () => const SliverFillRemaining(
                     child: Padding(
                       padding: EdgeInsets.all(16),
                       child: LessonListShimmer(),
                     ),
                   ),
-                  error: (error, stack) => _buildErrorState(ref, error),
-                );
-              },
-              loading: () => const SliverFillRemaining(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: LessonListShimmer(),
+                  error: (error, stack) => _ErrorState(ref: ref, error: error),
                 ),
               ),
-              error: (error, stack) => _buildErrorState(ref, error),
-            ),
+              const SliverToBoxAdapter(child: SizedBox(height: 60)),
+            ],
           ),
-
-          // Extra Space at the bottom
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ChatScreen()),
-        ),
-        backgroundColor: const Color(0xFF1E3A8A),
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(
-          FontAwesomeIcons.solidCommentDots,
-          color: Colors.white,
-          size: 20,
-        ),
-        label: const Text(
-          'Message Teacher',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
-        ),
       ),
     );
   }
+}
 
-  Widget _buildSliverAppBar(
-    BuildContext context,
-    AsyncValue profileAsync,
-    dynamic user,
-    WidgetRef ref,
-  ) {
-    return SliverAppBar(
-      expandedHeight: 140,
-      pinned: true,
-      stretch: true,
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [StretchMode.zoomBackground],
-        centerTitle: false,
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-        title: profileAsync.when(
-          data: (profile) => Text(
-            'Hi, ${profile?['full_name'] ?? user?.fullName ?? user?.username ?? 'Candidate'} 👋',
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF1E293B),
-              fontSize: 20,
+class _Backdrop extends StatelessWidget {
+  const _Backdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF7F4EF), Color(0xFFEDE6D9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => Text(
-            'Hi, ${user?.username ?? 'Candidate'} 👋',
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
         ),
-      ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF1E3A8A)),
-            onPressed: () {
-              ref.read(lessonsNotifierProvider.notifier).refresh();
-              ref.invalidate(lessonProgressProvider);
-            },
-          ),
-        ),
-        Container(
-          margin: const EdgeInsets.only(right: 16),
-          decoration: BoxDecoration(
-            color: Colors.red[50],
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: const Icon(
-              FontAwesomeIcons.rightFromBracket,
-              color: Colors.red,
-              size: 18,
+        Positioned(
+          top: -80,
+          left: -60,
+          child: Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF3B82F6).withOpacity(0.08),
             ),
-            onPressed: () => ref.read(authNotifierProvider.notifier).signOut(),
+          ),
+        ),
+        Positioned(
+          top: 140,
+          right: -80,
+          child: Container(
+            width: 260,
+            height: 260,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF10B981).withOpacity(0.08),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -120,
+          left: -40,
+          child: Container(
+            width: 280,
+            height: 280,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFF97316).withOpacity(0.09),
+            ),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildProgressCard(
-    BuildContext context,
-    int total,
-    int completed,
-    double progress,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+class _TopBar extends StatelessWidget {
+  final AsyncValue profileAsync;
+  final dynamic user;
+  final VoidCallback onRefresh;
+  final VoidCallback onLogout;
+
+  const _TopBar({
+    required this.profileAsync,
+    required this.user,
+    required this.onRefresh,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white.withOpacity(0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 26,
+              offset: const Offset(0, 14),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1E3A8A).withValues(alpha: 0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0EA5E9), Color(0xFF1D4ED8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                FontAwesomeIcons.userAstronaut,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Your Learning Path',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white70,
+                  profileAsync.when(
+                    data: (profile) {
+                      final name =
+                          profile?['full_name'] ??
+                          user?.fullName ??
+                          user?.username ??
+                          'طالب';
+                      return Text(
+                        'مرحباً $name',
+                        style: GoogleFonts.dmSerifDisplay(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1F2937),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => Text(
+                      'مرحباً بك',
+                      style: GoogleFonts.dmSerifDisplay(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1F2937),
+                      ),
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
-                    'Overall Progress',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                    'جهّز تركيزك، الامتحانات جاهزة لك.',
+                    style: GoogleFonts.manrope(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF64748B),
                     ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '${(progress * 100).toInt()}%',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Stack(
-            children: [
-              Container(
-                height: 12,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 800),
-                height: 12,
-                width: MediaQuery.of(context).size.width * 0.75 * progress,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem(
-                FontAwesomeIcons.bookOpen,
-                '$total',
-                'Total Exams',
-                Colors.white,
-              ),
-              _buildStatItem(
-                FontAwesomeIcons.circleCheck,
-                '$completed',
-                'Completed',
-                Colors.white,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-            child: Text(
-              total == 0
-                  ? 'No exams assigned yet.'
-                  : completed == total
-                  ? 'Great job! You completed all exams.'
-                  : 'Keep going — ${total - completed} exams remaining.',
-              style: TextStyle(
-                color: scheme.onPrimary,
-                fontWeight: FontWeight.w600,
-              ),
+            Column(
+              children: [
+                _TopIconButton(
+                  icon: Icons.refresh_rounded,
+                  onTap: onRefresh,
+                ),
+                const SizedBox(height: 10),
+                _TopIconButton(
+                  icon: FontAwesomeIcons.rightFromBracket,
+                  iconSize: 14,
+                  color: const Color(0xFFB91C1C),
+                  onTap: onLogout,
+                ),
+              ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopIconButton extends StatelessWidget {
+  final IconData icon;
+  final double iconSize;
+  final Color? color;
+  final VoidCallback onTap;
+
+  const _TopIconButton({
+    required this.icon,
+    required this.onTap,
+    this.iconSize = 18,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: iconSize,
+          color: color ?? const Color(0xFF1F2937),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressCard extends StatelessWidget {
+  final int total;
+  final int completed;
+  final int upcoming;
+  final int past;
+  final double progress;
+
+  const _ProgressCard({
+    required this.total,
+    required this.completed,
+    required this.upcoming,
+    required this.past,
+    required this.progress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'تقدّمك اليومي',
+            style: GoogleFonts.manrope(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${(progress * 100).round()}% جاهزية',
+            style: GoogleFonts.dmSerifDisplay(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 18),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 10,
+              backgroundColor: Colors.white.withOpacity(0.16),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFFF59E0B)),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _MetricPill(label: 'الكل', value: '$total'),
+              _MetricPill(label: 'تم الحل', value: '$completed'),
+              _MetricPill(label: 'قادمة', value: '$upcoming'),
+              _MetricPill(label: 'سابقة', value: '$past'),
+            ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildAnnouncementsCard(List<Announcement> items) {
+class _MetricPill extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MetricPill({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 78),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.18)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.manrope(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.manrope(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  const _SectionTitle({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: const Color(0xFF1E3A8A).withOpacity(0.12),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 18, color: const Color(0xFF1E3A8A)),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.dmSerifDisplay(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            Text(
+              subtitle,
+              style: GoogleFonts.manrope(
+                fontSize: 12,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AnnouncementsPanel extends StatelessWidget {
+  final List<Announcement> items;
+
+  const _AnnouncementsPanel({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
     if (items.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
-            Icon(Icons.campaign_outlined, color: Colors.grey.shade400),
+            const Icon(Icons.campaign_outlined, color: Color(0xFF64748B)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'لا توجد إعلانات جديدة حالياً.',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF64748B),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -433,247 +638,268 @@ class LessonsScreen extends ConsumerWidget {
       );
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.campaign_rounded, color: Color(0xFF1E3A8A)),
-              SizedBox(width: 8),
-              Text(
-                'إعلانات المنصة',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+    return SizedBox(
+      height: 140,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: Duration(milliseconds: 450 + index * 120),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(20 * (1 - value), 0),
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              width: 250,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...items.take(3).map((a) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    a.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.dmSerifDisplay(
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF92400E),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    a.body,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontSize: 13,
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Text(
+                      item.body,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.manrope(
+                        color: const Color(0xFF78350F),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'إعلان',
+                        style: GoogleFonts.manrope(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF92400E),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-            );
-          }),
-        ],
+            ),
+          );
+        },
       ),
     );
   }
+}
 
-  Widget _buildLessonCard(
-    BuildContext context,
-    WidgetRef ref,
-    dynamic lesson,
-    dynamic progress,
-    bool isCompleted,
-  ) {
+class _AnimatedExamTile extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _AnimatedExamTile({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 420 + index * 120),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 24 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _LessonTile extends StatelessWidget {
+  final dynamic lesson;
+  final dynamic progress;
+  final bool isCompleted;
+  final VoidCallback onTap;
+
+  const _LessonTile({
+    required this.lesson,
+    required this.progress,
+    required this.isCompleted,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final badgeColor =
+        isCompleted ? const Color(0xFF059669) : const Color(0xFF1E3A8A);
+    final scheduledAt = lesson.scheduledAt as DateTime?;
+    final expiresAt = lesson.expiresAt as DateTime?;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isCompleted
-              ? Colors.green.withValues(alpha: 0.2)
-              : Colors.grey.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () async {
-            final now = DateTime.now();
-            final scheduledAt = lesson.scheduledAt;
-            final expiresAt = lesson.expiresAt;
-
-            // Block if not started yet
-            if (!isCompleted &&
-                scheduledAt != null &&
-                now.isBefore(scheduledAt)) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Exam will be available in ${scheduledAt.difference(now).inMinutes} minutes',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: badgeColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      isCompleted
+                          ? FontAwesomeIcons.circleCheck
+                          : FontAwesomeIcons.bookOpen,
+                      color: badgeColor,
+                      size: 18,
+                    ),
                   ),
-                  backgroundColor: Colors.orange.shade800,
-                ),
-              );
-              return;
-            }
-
-            // Block if expired
-            if (!isCompleted && expiresAt != null && now.isAfter(expiresAt)) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'This exam has expired and is no longer available.',
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      lesson.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.dmSerifDisplay(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
                   ),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => QuizScreen(lessonId: lesson.id),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Color(0xFFCBD5E1),
+                  ),
+                ],
               ),
-            );
-            ref.invalidate(lessonProgressProvider);
-          },
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? Colors.green[50]
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        isCompleted
-                            ? FontAwesomeIcons.circleCheck
-                            : FontAwesomeIcons.book,
-                        color:
-                            isCompleted ? Colors.green : const Color(0xFF1E3A8A),
-                        size: 22,
-                      ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ExamStatusBadge(lesson: lesson, isCompleted: isCompleted),
+                  if (lesson.durationMinutes != null)
+                    _InlineChip(
+                      label: '${lesson.durationMinutes} دقيقة',
+                      color: const Color(0xFF0F766E),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        lesson.title,
-                        style: const TextStyle(
-                          color: Color(0xFF1E293B),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  if (scheduledAt != null)
+                    _InlineChip(
+                      label: 'يفتح ${_formatDateTime(scheduledAt)}',
+                      color: const Color(0xFF1D4ED8),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.blueGrey[200],
-                      size: 16,
+                  if (expiresAt != null)
+                    _InlineChip(
+                      label: 'ينتهي ${_formatDateTime(expiresAt)}',
+                      color: const Color(0xFFB45309),
                     ),
-                  ],
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isCompleted
+                    ? 'النتيجة: ${progress['attained']} / ${progress['total']}'
+                    : (lesson.description ?? 'اضغط لبدء الامتحان'),
+                style: GoogleFonts.manrope(
+                  color: isCompleted
+                      ? const Color(0xFF15803D)
+                      : const Color(0xFF64748B),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    ExamStatusBadge(lesson: lesson, isCompleted: isCompleted),
-                    const SizedBox(width: 8),
-                    if (lesson.durationMinutes != null)
-                      _buildInfoChip(
-                        '${lesson.durationMinutes} min',
-                        const Color(0xFF1E3A8A),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  isCompleted
-                      ? 'Score: ${progress['attained']} / ${progress['total']}'
-                      : (lesson.description ?? 'Start this exam now'),
-                  style: TextStyle(
-                    color:
-                        isCompleted ? Colors.green[700] : Colors.grey[600],
-                    fontSize: 14,
-                    fontWeight:
-                        isCompleted ? FontWeight.bold : FontWeight.w500,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildStatItem(
-    IconData icon,
-    String value,
-    String label,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Icon(icon, color: color.withValues(alpha: 0.8), size: 20),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: color.withValues(alpha: 0.6),
-          ),
-        ),
-      ],
-    );
-  }
+class _InlineChip extends StatelessWidget {
+  final String label;
+  final Color color;
 
-  Widget _buildInfoChip(String label, Color color) {
+  const _InlineChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withOpacity(0.25)),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: GoogleFonts.manrope(
           color: color,
           fontSize: 11,
           fontWeight: FontWeight.w700,
@@ -681,8 +907,61 @@ class LessonsScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildErrorState(WidgetRef ref, dynamic error) {
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFCBD5E1).withOpacity(0.2),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              FontAwesomeIcons.folderOpen,
+              size: 36,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'لا توجد امتحانات حالياً',
+            style: GoogleFonts.dmSerifDisplay(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'سيقوم المعلم بنشر الامتحانات قريباً.',
+            style: GoogleFonts.manrope(
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final WidgetRef ref;
+  final dynamic error;
+
+  const _ErrorState({required this.ref, required this.error});
+
+  @override
+  Widget build(BuildContext context) {
     return SliverFillRemaining(
       child: Center(
         child: Padding(
@@ -696,19 +975,21 @@ class LessonsScreen extends ConsumerWidget {
                 color: Colors.red[300],
               ),
               const SizedBox(height: 24),
-              const Text(
-                'عذراً، فشل جلب البيانات',
-                style: TextStyle(
+              Text(
+                'حدث خطأ غير متوقع',
+                style: GoogleFonts.dmSerifDisplay(
                   fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1E293B),
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 Failure.getFriendlyMessage(error),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF64748B)),
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF64748B),
+                ),
               ),
               const SizedBox(height: 32),
               TextButton.icon(
@@ -726,4 +1007,13 @@ class LessonsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _formatDateTime(DateTime dateTime) {
+  String two(int value) => value.toString().padLeft(2, '0');
+  final day = two(dateTime.day);
+  final month = two(dateTime.month);
+  final hour = two(dateTime.hour);
+  final minute = two(dateTime.minute);
+  return '$day/$month $hour:$minute';
 }

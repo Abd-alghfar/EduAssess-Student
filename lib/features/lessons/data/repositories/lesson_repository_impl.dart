@@ -9,9 +9,26 @@ class LessonRepositoryImpl implements LessonRepository {
 
   @override
   Future<List<Lesson>> getLessons() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return [];
+    }
+
+    final classIds = await _getStudentClassIds(userId);
+    if (classIds.isEmpty) {
+      return [];
+    }
+
+    final assignmentIds = await _getAssignmentIdsForClasses(classIds);
+    if (assignmentIds.isEmpty) {
+      return [];
+    }
+
     final response = await _client
         .from('lessons')
         .select()
+        .inFilter('assignment_id', assignmentIds)
+        .eq('is_published', true)
         .order('created_at', ascending: true);
 
     return (response as List).map((json) => Lesson.fromJson(json)).toList();
@@ -21,17 +38,34 @@ class LessonRepositoryImpl implements LessonRepository {
   Future<Map<String, Map<String, int>>> getLessonProgressMap(
     String userId,
   ) async {
+    final classIds = await _getStudentClassIds(userId);
+    if (classIds.isEmpty) {
+      return {};
+    }
+
+    final assignmentIds = await _getAssignmentIdsForClasses(classIds);
+    if (assignmentIds.isEmpty) {
+      return {};
+    }
+
+    final lessonIds = await _getLessonIdsForAssignments(assignmentIds);
+    if (lessonIds.isEmpty) {
+      return {};
+    }
+
     // 1. Get completed attempts
     final progressResponse = await _client
         .from('exam_attempts')
         .select('lesson_id, score')
         .eq('student_id', userId)
-        .eq('is_completed', true);
+        .eq('is_completed', true)
+        .inFilter('lesson_id', lessonIds);
 
     // 2. Get total possible points for all lessons
     final questionsResponse = await _client
         .from('questions')
-        .select('lesson_id, points');
+        .select('lesson_id, points')
+        .inFilter('lesson_id', lessonIds);
 
     final Map<String, int> totalPointsMap = {};
     for (final q in (questionsResponse as List)) {
@@ -52,5 +86,40 @@ class LessonRepositoryImpl implements LessonRepository {
       };
     }
     return resultMap;
+  }
+
+  Future<List<String>> _getStudentClassIds(String userId) async {
+    final response = await _client
+        .from('class_students')
+        .select('class_id')
+        .eq('student_id', userId);
+
+    return (response as List)
+        .map((row) => row['class_id'] as String)
+        .toList();
+  }
+
+  Future<List<String>> _getAssignmentIdsForClasses(
+    List<String> classIds,
+  ) async {
+    final response = await _client
+        .from('teacher_assignments')
+        .select('id')
+        .inFilter('class_id', classIds)
+        .eq('is_active', true);
+
+    return (response as List).map((row) => row['id'] as String).toList();
+  }
+
+  Future<List<String>> _getLessonIdsForAssignments(
+    List<String> assignmentIds,
+  ) async {
+    final response = await _client
+        .from('lessons')
+        .select('id')
+        .inFilter('assignment_id', assignmentIds)
+        .eq('is_published', true);
+
+    return (response as List).map((row) => row['id'] as String).toList();
   }
 }
