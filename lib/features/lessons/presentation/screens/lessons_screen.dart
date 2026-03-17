@@ -9,6 +9,7 @@ import 'package:eduassess_student/features/chat/presentation/screens/chat_screen
 import 'package:eduassess_student/core/widgets/shimmer_loader.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:eduassess_student/core/error/failure.dart';
+import '../widgets/exam_status_badge.dart';
 
 class LessonsScreen extends ConsumerWidget {
   const LessonsScreen({super.key});
@@ -85,7 +86,20 @@ class LessonsScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: lessonsAsync.when(
               data: (lessons) {
-                if (lessons.isEmpty) {
+                // Filter out expired lessons not completed
+                final now = DateTime.now();
+                final visibleLessons = lessons.where((l) {
+                  if (l.expiresAt != null && now.isAfter(l.expiresAt!)) {
+                    // Check if student completed it, if so keep it visible
+                    return progressAsync.maybeWhen(
+                      data: (p) => p.containsKey(l.id),
+                      orElse: () => false,
+                    );
+                  }
+                  return true;
+                }).toList();
+
+                if (visibleLessons.isEmpty) {
                   return const SliverFillRemaining(
                     child: Center(
                       child: Column(
@@ -97,16 +111,17 @@ class LessonsScreen extends ConsumerWidget {
                             color: Colors.grey,
                           ),
                           SizedBox(height: 16),
-                          Text('No lessons available yet.'),
+                          Text('No active exams available.'),
                         ],
                       ),
                     ),
                   );
                 }
+
                 return progressAsync.when(
                   data: (progressMap) => SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final lesson = lessons[index];
+                      final lesson = visibleLessons[index];
                       final progress = progressMap[lesson.id];
                       final isCompleted = progress != null;
 
@@ -117,7 +132,7 @@ class LessonsScreen extends ConsumerWidget {
                         progress,
                         isCompleted,
                       );
-                    }, childCount: lessons.length),
+                    }, childCount: visibleLessons.length),
                   ),
                   loading: () => const SliverFillRemaining(
                     child: Padding(
@@ -384,6 +399,38 @@ class LessonsScreen extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () async {
+            final now = DateTime.now();
+            final scheduledAt = lesson.scheduledAt;
+            final expiresAt = lesson.expiresAt;
+
+            // Block if not started yet
+            if (!isCompleted &&
+                scheduledAt != null &&
+                now.isBefore(scheduledAt)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Exam will be available in ${scheduledAt.difference(now).inMinutes} minutes',
+                  ),
+                  backgroundColor: Colors.orange.shade800,
+                ),
+              );
+              return;
+            }
+
+            // Block if expired
+            if (!isCompleted && expiresAt != null && now.isAfter(expiresAt)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'This exam has expired and is no longer available.',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
             await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => QuizScreen(lessonId: lesson.id),
@@ -417,15 +464,24 @@ class LessonsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        lesson.title,
-                        style: const TextStyle(
-                          color: Color(0xFF1E293B),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              lesson.title,
+                              style: const TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
+                      ExamStatusBadge(lesson: lesson, isCompleted: isCompleted),
+                      const SizedBox(height: 12),
                       Text(
                         isCompleted
                             ? 'Score: ${progress['attained']} / ${progress['total']} (Passed)'

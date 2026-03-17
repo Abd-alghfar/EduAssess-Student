@@ -35,6 +35,17 @@ class QuizNotifier extends _$QuizNotifier {
       final lessons = await lessonRepo.getLessons();
       final lesson = lessons.firstWhere((l) => l.id == lessonId);
 
+      // Check if not started yet
+      final now = DateTime.now();
+      if (lesson.scheduledAt != null && now.isBefore(lesson.scheduledAt!)) {
+        throw 'العام لم يبدأ بعد. سيكون متاحاً في تمام الساعة ${lesson.scheduledAt!.hour}:${lesson.scheduledAt!.minute.toString().padLeft(2, '0')}';
+      }
+
+      // Check if expired
+      if (lesson.expiresAt != null && now.isAfter(lesson.expiresAt!)) {
+        throw 'عذراً، انتهى الوقت المخصص لهذا الاختبار ولم يعد متاحاً.';
+      }
+
       final studentAnswers = await repository.getStudentAnswers(
         lessonId,
         user.id,

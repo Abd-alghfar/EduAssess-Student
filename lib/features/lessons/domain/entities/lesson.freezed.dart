@@ -30,6 +30,10 @@ mixin _$Lesson {
   bool get showCorrection => throw _privateConstructorUsedError;
   @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'scheduled_at')
+  DateTime? get scheduledAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'expires_at')
+  DateTime? get expiresAt => throw _privateConstructorUsedError;
 
   /// Serializes this Lesson to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -52,6 +56,8 @@ abstract class $LessonCopyWith<$Res> {
     @JsonKey(name: 'duration_minutes') int? durationMinutes,
     @JsonKey(name: 'show_correction') bool showCorrection,
     @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'scheduled_at') DateTime? scheduledAt,
+    @JsonKey(name: 'expires_at') DateTime? expiresAt,
   });
 }
 
@@ -76,6 +82,8 @@ class _$LessonCopyWithImpl<$Res, $Val extends Lesson>
     Object? durationMinutes = freezed,
     Object? showCorrection = null,
     Object? createdAt = null,
+    Object? scheduledAt = freezed,
+    Object? expiresAt = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -103,6 +111,14 @@ class _$LessonCopyWithImpl<$Res, $Val extends Lesson>
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
                       as DateTime,
+            scheduledAt: freezed == scheduledAt
+                ? _value.scheduledAt
+                : scheduledAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            expiresAt: freezed == expiresAt
+                ? _value.expiresAt
+                : expiresAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
           )
           as $Val,
     );
@@ -124,6 +140,8 @@ abstract class _$$LessonImplCopyWith<$Res> implements $LessonCopyWith<$Res> {
     @JsonKey(name: 'duration_minutes') int? durationMinutes,
     @JsonKey(name: 'show_correction') bool showCorrection,
     @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'scheduled_at') DateTime? scheduledAt,
+    @JsonKey(name: 'expires_at') DateTime? expiresAt,
   });
 }
 
@@ -147,6 +165,8 @@ class __$$LessonImplCopyWithImpl<$Res>
     Object? durationMinutes = freezed,
     Object? showCorrection = null,
     Object? createdAt = null,
+    Object? scheduledAt = freezed,
+    Object? expiresAt = freezed,
   }) {
     return _then(
       _$LessonImpl(
@@ -174,6 +194,14 @@ class __$$LessonImplCopyWithImpl<$Res>
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
                   as DateTime,
+        scheduledAt: freezed == scheduledAt
+            ? _value.scheduledAt
+            : scheduledAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        expiresAt: freezed == expiresAt
+            ? _value.expiresAt
+            : expiresAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
       ),
     );
   }
@@ -189,6 +217,8 @@ class _$LessonImpl implements _Lesson {
     @JsonKey(name: 'duration_minutes') this.durationMinutes,
     @JsonKey(name: 'show_correction') this.showCorrection = true,
     @JsonKey(name: 'created_at') required this.createdAt,
+    @JsonKey(name: 'scheduled_at') this.scheduledAt,
+    @JsonKey(name: 'expires_at') this.expiresAt,
   });
 
   factory _$LessonImpl.fromJson(Map<String, dynamic> json) =>
@@ -209,10 +239,16 @@ class _$LessonImpl implements _Lesson {
   @override
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
+  @override
+  @JsonKey(name: 'scheduled_at')
+  final DateTime? scheduledAt;
+  @override
+  @JsonKey(name: 'expires_at')
+  final DateTime? expiresAt;
 
   @override
   String toString() {
-    return 'Lesson(id: $id, title: $title, description: $description, durationMinutes: $durationMinutes, showCorrection: $showCorrection, createdAt: $createdAt)';
+    return 'Lesson(id: $id, title: $title, description: $description, durationMinutes: $durationMinutes, showCorrection: $showCorrection, createdAt: $createdAt, scheduledAt: $scheduledAt, expiresAt: $expiresAt)';
   }
 
   @override
@@ -229,7 +265,11 @@ class _$LessonImpl implements _Lesson {
             (identical(other.showCorrection, showCorrection) ||
                 other.showCorrection == showCorrection) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.scheduledAt, scheduledAt) ||
+                other.scheduledAt == scheduledAt) &&
+            (identical(other.expiresAt, expiresAt) ||
+                other.expiresAt == expiresAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -242,6 +282,8 @@ class _$LessonImpl implements _Lesson {
     durationMinutes,
     showCorrection,
     createdAt,
+    scheduledAt,
+    expiresAt,
   );
 
   /// Create a copy of Lesson
@@ -266,6 +308,8 @@ abstract class _Lesson implements Lesson {
     @JsonKey(name: 'duration_minutes') final int? durationMinutes,
     @JsonKey(name: 'show_correction') final bool showCorrection,
     @JsonKey(name: 'created_at') required final DateTime createdAt,
+    @JsonKey(name: 'scheduled_at') final DateTime? scheduledAt,
+    @JsonKey(name: 'expires_at') final DateTime? expiresAt,
   }) = _$LessonImpl;
 
   factory _Lesson.fromJson(Map<String, dynamic> json) = _$LessonImpl.fromJson;
@@ -285,6 +329,12 @@ abstract class _Lesson implements Lesson {
   @override
   @JsonKey(name: 'created_at')
   DateTime get createdAt;
+  @override
+  @JsonKey(name: 'scheduled_at')
+  DateTime? get scheduledAt;
+  @override
+  @JsonKey(name: 'expires_at')
+  DateTime? get expiresAt;
 
   /// Create a copy of Lesson
   /// with the given fields replaced by the non-null parameter values.
