@@ -33,7 +33,7 @@ class QuizNotifier extends _$QuizNotifier {
       final lessonRepo = ref.read(lessonRepositoryProvider);
 
       final questions = await repository.getQuestions(lessonId);
-      final lessons = await lessonRepo.getLessons();
+      final lessons = await lessonRepo.getLessons(user.id);
       final lesson = lessons.firstWhere((l) => l.id == lessonId);
 
       // Check if not started yet

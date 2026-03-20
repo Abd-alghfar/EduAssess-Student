@@ -8,18 +8,15 @@ class LessonRepositoryImpl implements LessonRepository {
   LessonRepositoryImpl(this._client);
 
   @override
-  Future<List<Lesson>> getLessons() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      return [];
-    }
-
+  Future<List<Lesson>> getLessons(String userId) async {
     final classIds = await _getStudentClassIds(userId);
+    print('[Lessons] class ids: ${classIds.length}');
     if (classIds.isEmpty) {
       return [];
     }
 
     final assignmentIds = await _getAssignmentIdsForClasses(classIds);
+    print('[Lessons] assignment ids: ${assignmentIds.length}');
     if (assignmentIds.isEmpty) {
       return [];
     }
@@ -28,10 +25,21 @@ class LessonRepositoryImpl implements LessonRepository {
         .from('lessons')
         .select()
         .inFilter('assignment_id', assignmentIds)
-        .eq('is_published', true)
         .order('created_at', ascending: true);
 
-    return (response as List).map((json) => Lesson.fromJson(json)).toList();
+    final rows = (response as List);
+    print('[Lessons] raw rows: ${rows.length}');
+    final List<Lesson> lessons = [];
+    for (final row in rows) {
+      try {
+        lessons.add(Lesson.fromJson(row));
+      } catch (e) {
+        final id = row is Map ? row['id'] : null;
+        print('[Lessons] parse error for id=$id: $e');
+      }
+    }
+    print('[Lessons] parsed lessons: ${lessons.length}');
+    return lessons;
   }
 
   @override
@@ -39,16 +47,17 @@ class LessonRepositoryImpl implements LessonRepository {
     String userId,
   ) async {
     final classIds = await _getStudentClassIds(userId);
+    print('[Progress] class ids: ${classIds.length}');
     if (classIds.isEmpty) {
       return {};
     }
-
     final assignmentIds = await _getAssignmentIdsForClasses(classIds);
+    print('[Progress] assignment ids: ${assignmentIds.length}');
     if (assignmentIds.isEmpty) {
       return {};
     }
-
     final lessonIds = await _getLessonIdsForAssignments(assignmentIds);
+    print('[Progress] lesson ids: ${lessonIds.length}');
     if (lessonIds.isEmpty) {
       return {};
     }
@@ -60,12 +69,14 @@ class LessonRepositoryImpl implements LessonRepository {
         .eq('student_id', userId)
         .eq('is_completed', true)
         .inFilter('lesson_id', lessonIds);
+    print('[Progress] attempts rows: ${(progressResponse as List).length}');
 
     // 2. Get total possible points for all lessons
     final questionsResponse = await _client
         .from('questions')
         .select('lesson_id, points')
         .inFilter('lesson_id', lessonIds);
+    print('[Progress] questions rows: ${(questionsResponse as List).length}');
 
     final Map<String, int> totalPointsMap = {};
     for (final q in (questionsResponse as List)) {
@@ -122,4 +133,7 @@ class LessonRepositoryImpl implements LessonRepository {
 
     return (response as List).map((row) => row['id'] as String).toList();
   }
+
+  
+
 }

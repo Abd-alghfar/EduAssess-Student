@@ -13,6 +13,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:eduassess_student/core/error/failure.dart';
 import '../widgets/exam_status_badge.dart';
 
+enum _ExamFilter { all, completed, pending, upcoming, past }
+
 class LessonsScreen extends ConsumerWidget {
   const LessonsScreen({super.key});
 
@@ -23,6 +25,7 @@ class LessonsScreen extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileProvider);
     final progressAsync = ref.watch(lessonProgressProvider);
     final announcementsAsync = ref.watch(announcementsProvider);
+    final selectedFilter = ref.watch(_examFilterProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EF),
@@ -47,44 +50,7 @@ class LessonsScreen extends ConsumerWidget {
                   },
                 ),
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                  child: lessonsAsync.when(
-                    data: (lessons) => progressAsync.when(
-                      data: (progressMap) {
-                        final total = lessons.length;
-                        final completed = progressMap.length;
-                        final progress = total > 0 ? completed / total : 0.0;
-                        final past = lessons.where((lesson) {
-                          final expiresAt = lesson.expiresAt as DateTime?;
-                          final isCompleted = progressMap.containsKey(lesson.id);
-                          return !isCompleted &&
-                              expiresAt != null &&
-                              DateTime.now().isAfter(expiresAt);
-                        }).length;
-                        final upcomingRaw = total - completed - past;
-                        final upcoming = upcomingRaw < 0 ? 0 : upcomingRaw;
-                        return _ProgressCard(
-                          total: total,
-                          completed: completed,
-                          upcoming: upcoming,
-                          past: past,
-                          progress: progress,
-                        );
-                      },
-                      loading: () => const CodeKeyShimmer.rectangular(
-                        height: 190,
-                      ),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
-                    loading: () => const CodeKeyShimmer.rectangular(
-                      height: 190,
-                    ),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-                ),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 8)),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -107,6 +73,16 @@ class LessonsScreen extends ConsumerWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: _ExamFilterBar(
+                    selected: selectedFilter,
+                    onSelected: (filter) =>
+                        ref.read(_examFilterProvider.notifier).state = filter,
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                   child: _SectionTitle(
                     title: 'الامتحانات القادمة',
@@ -120,15 +96,45 @@ class LessonsScreen extends ConsumerWidget {
                 sliver: lessonsAsync.when(
                   data: (lessons) {
                     final now = DateTime.now();
-                    final visibleLessons = lessons.where((l) {
-                      if (l.expiresAt != null && now.isAfter(l.expiresAt!)) {
-                        return progressAsync.maybeWhen(
-                          data: (p) => p.containsKey(l.id),
-                          orElse: () => false,
-                        );
-                      }
-                      return true;
-                    }).toList();
+                    final visibleLessons = progressAsync.maybeWhen(
+                      data: (progressMap) {
+                        bool isCompleted(dynamic lesson) =>
+                            progressMap.containsKey(lesson.id);
+                        bool isPast(dynamic lesson) =>
+                            lesson.expiresAt != null &&
+                            now.isAfter(lesson.expiresAt!);
+
+                        switch (selectedFilter) {
+                          case _ExamFilter.completed:
+                            return lessons
+                                .where((lesson) => isCompleted(lesson))
+                                .toList();
+                          case _ExamFilter.past:
+                            return lessons
+                                .where((lesson) =>
+                                    !isCompleted(lesson) && isPast(lesson))
+                                .toList();
+                          case _ExamFilter.pending:
+                            return lessons
+                                .where((lesson) =>
+                                    !isCompleted(lesson) &&
+                                    !isPast(lesson) &&
+                                    !(lesson.scheduledAt != null &&
+                                        now.isBefore(lesson.scheduledAt!)))
+                                .toList();
+                          case _ExamFilter.upcoming:
+                            return lessons
+                                .where((lesson) =>
+                                    !isCompleted(lesson) &&
+                                    lesson.scheduledAt != null &&
+                                    now.isBefore(lesson.scheduledAt!))
+                                .toList();
+                          case _ExamFilter.all:
+                            return lessons;
+                        }
+                      },
+                      orElse: () => lessons,
+                    );
 
                     if (visibleLessons.isEmpty) {
                       return const SliverFillRemaining(child: _EmptyState());
@@ -217,6 +223,10 @@ class LessonsScreen extends ConsumerWidget {
     );
   }
 }
+
+final _examFilterProvider = StateProvider<_ExamFilter>(
+  (ref) => _ExamFilter.all,
+);
 
 class _Backdrop extends StatelessWidget {
   const _Backdrop();
@@ -429,124 +439,93 @@ class _TopIconButton extends StatelessWidget {
   }
 }
 
-class _ProgressCard extends StatelessWidget {
-  final int total;
-  final int completed;
-  final int upcoming;
-  final int past;
-  final double progress;
+class _ExamFilterBar extends StatelessWidget {
+  final _ExamFilter selected;
+  final ValueChanged<_ExamFilter> onSelected;
 
-  const _ProgressCard({
-    required this.total,
-    required this.completed,
-    required this.upcoming,
-    required this.past,
-    required this.progress,
+  const _ExamFilterBar({
+    required this.selected,
+    required this.onSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _FilterChip(
+          label: 'الكل',
+          isActive: selected == _ExamFilter.all,
+          onTap: () => onSelected(_ExamFilter.all),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'تقدّمك اليومي',
-            style: GoogleFonts.manrope(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${(progress * 100).round()}% جاهزية',
-            style: GoogleFonts.dmSerifDisplay(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 18),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 10,
-              backgroundColor: Colors.white.withOpacity(0.16),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFFF59E0B)),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _MetricPill(label: 'الكل', value: '$total'),
-              _MetricPill(label: 'تم الحل', value: '$completed'),
-              _MetricPill(label: 'قادمة', value: '$upcoming'),
-              _MetricPill(label: 'سابقة', value: '$past'),
-            ],
-          ),
-        ],
-      ),
+        _FilterChip(
+          label: 'تم الحل',
+          isActive: selected == _ExamFilter.completed,
+          onTap: () => onSelected(_ExamFilter.completed),
+        ),
+        _FilterChip(
+          label: 'غير محلولة',
+          isActive: selected == _ExamFilter.pending,
+          onTap: () => onSelected(_ExamFilter.pending),
+        ),
+        _FilterChip(
+          label: 'قادمة',
+          isActive: selected == _ExamFilter.upcoming,
+          onTap: () => onSelected(_ExamFilter.upcoming),
+        ),
+        _FilterChip(
+          label: 'منتهية',
+          isActive: selected == _ExamFilter.past,
+          onTap: () => onSelected(_ExamFilter.past),
+        ),
+      ],
     );
   }
 }
 
-class _MetricPill extends StatelessWidget {
+class _FilterChip extends StatelessWidget {
   final String label;
-  final String value;
+  final bool isActive;
+  final VoidCallback onTap;
 
-  const _MetricPill({required this.label, required this.value});
+  const _FilterChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 78),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 260),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.18)),
+          color: isActive ? const Color(0xFF1D4ED8) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isActive ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF1D4ED8).withOpacity(0.28),
+                    blurRadius: 16,
+                    offset: const Offset(0, 10),
+                  ),
+                ]
+              : [],
         ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: GoogleFonts.manrope(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              label,
-              style: GoogleFonts.manrope(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.white70,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: GoogleFonts.manrope(
+            color: isActive ? Colors.white : const Color(0xFF475569),
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
         ),
       ),
     );
@@ -914,42 +893,52 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFFCBD5E1).withOpacity(0.2),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              FontAwesomeIcons.folderOpen,
-              size: 36,
-              color: Color(0xFF64748B),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFCBD5E1).withOpacity(0.2),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      FontAwesomeIcons.folderOpen,
+                      size: 36,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'لا توجد امتحانات حالياً',
+                    style: GoogleFonts.dmSerifDisplay(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'سيقوم المعلم بنشر الامتحانات قريباً.',
+                    style: GoogleFonts.manrope(
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'لا توجد امتحانات حالياً',
-            style: GoogleFonts.dmSerifDisplay(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1F2937),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'سيقوم المعلم بنشر الامتحانات قريباً.',
-            style: GoogleFonts.manrope(
-              color: const Color(0xFF64748B),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
